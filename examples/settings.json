@@ -1,0 +1,65 @@
+{
+  "_comment": "Minimal Claude Code settings.json showing the four hooks claude-code-tabs registers. install.ps1 merges these into your existing ~/.claude/settings.json without overwriting your other entries.",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File 'C:/Users/<you>/.claude/hooks/notify-done.ps1' -Title 'Claude Code' -Message 'Task complete' 2>/dev/null",
+            "async": true,
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File 'C:/Users/<you>/.claude/hooks/notify-done.ps1' -Title 'Claude Code' -Message 'Waiting for input' 2>/dev/null",
+            "async": true,
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File 'C:/Users/<you>/.claude/hooks/notify-clear.ps1' 2>/dev/null",
+            "async": true,
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File 'C:/Users/<you>/.claude/hooks/notify-busy.ps1' 2>/dev/null",
+            "async": true,
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File 'C:/Users/<you>/.claude/hooks/notify-resume.ps1' 2>/dev/null",
+            "async": true,
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

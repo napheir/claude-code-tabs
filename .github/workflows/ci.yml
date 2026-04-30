@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  parse:
+    name: Parse PowerShell scripts
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run parse check
+        shell: powershell
+        run: ./tests/parse.ps1
+
+  smoke:
+    name: Smoke test (synthetic stdin)
+    runs-on: windows-latest
+    needs: parse
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run smoke test
+        shell: powershell
+        run: ./tests/smoke.ps1
+
+  install-dryrun:
+    name: install.ps1 -DryRun
+    runs-on: windows-latest
+    needs: parse
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify installer dry-run is clean
+        shell: powershell
+        run: |
+          ./install.ps1 -DryRun
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "install.ps1 -DryRun returned non-zero"
+            exit 1
+          }

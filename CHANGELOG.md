@@ -1,0 +1,30 @@
+# Changelog
+
+All notable changes to this project will be documented in this file. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [0.1.0] — 2026-04-30
+
+Initial public release. Extracted from a private multi-Agent project where the panel had been dogfooded for several weeks.
+
+### Added
+- 5 hook scripts (`notify-busy`, `notify-done`, `notify-clear`, `notify-resume`, `agent-tabs-watcher`).
+- `install.ps1` with `-DryRun`, `-SkipStartup`, `-Update`, `-Uninstall` flags.
+- Idempotent merge into `~/.claude/settings.json` (preserves user's other hook entries; SHA256-based file copy skip).
+- Startup folder shortcut for auto-launch on login.
+- Per-tab dedup via `terminal_pid` (parent process walk; current `$PID` is the short-lived hook process and is never used as the tab identity).
+- Liveness check: drops status entries whose owning shell pid has died (= tab closed).
+- Taskbar flash with foreground guard (no-op flash on currently-focused host window).
+- Window title prefix (`[OK]` / `[WAIT]` / `[!]`).
+- Toast notification with cwd-basename suffix (`Claude Code - my-project`).
+- WAIT → BUSY auto-recovery on `PreToolUse`.
+- UTF-8 stdin force in every hook (PowerShell 5.1 default GBK / cp936 corrupts CC's UTF-8 hook payload — Chinese / Unicode prompts in particular).
+
+### Known limitations
+- Windows-only (WinForms-bound panel; `Win32` `FlashWindowEx` etc.).
+- Multi-tab terminal hosts (Windows Terminal / Tabby) share one `MainWindowHandle` across all tabs — the panel can bring the host window to front on double-click but cannot focus a specific tab inside it.
+- Tested with Claude Code only. Other AI CLIs likely use different stdin payload schemas (`sessionId` camelCase vs `session_id` snake_case, etc.) — see `docs/architecture.md` for details.
+
+[Unreleased]: https://github.com/napheir/claude-code-tabs/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/napheir/claude-code-tabs/releases/tag/v0.1.0
