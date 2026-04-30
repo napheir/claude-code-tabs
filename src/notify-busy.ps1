@@ -3,7 +3,7 @@ param()
 # Mark the current CC session as BUSY (user just submitted a prompt; CC is now
 # working). Wired to the UserPromptSubmit hook. Replaces the previous
 # notify-clear wiring on that event so the Claude Tabs panel can show an
-# explicit "in progress" between two DONE states — without this, the panel
+# explicit "in progress" between two DONE states -- without this, the panel
 # stays on the previous [DONE] indefinitely and the user can't tell whether
 # the next task has started or finished.
 
@@ -31,7 +31,7 @@ if (-not ("CCNotify.W32" -as [type])) {
 }
 
 # Walk parent chain to find host GUI window + per-tab shell pid. Starts at
-# parent (not $PID) — current powershell is short-lived hook script and
+# parent (not $PID) -- current powershell is short-lived hook script and
 # cannot serve as terminal_pid (would be killed by watcher liveness).
 function Get-TerminalInfo {
     $startProc = Get-CimInstance Win32_Process -Filter "ProcessId=$PID" -ErrorAction SilentlyContinue
@@ -65,6 +65,12 @@ $session_id = ""
 $cwd = (Get-Location).Path
 try {
     $stdin_json = [Console]::In.ReadToEnd()
+    # Strip leading BOM if a parent process piped UTF-8-with-BOM to us.
+    # ConvertFrom-Json in PS5.1 chokes on the BOM (silent null in catch),
+    # then session_id falls back to $PID and the watcher kills our entry.
+    if ($stdin_json -and $stdin_json[0] -eq [char]0xFEFF) {
+        $stdin_json = $stdin_json.Substring(1)
+    }
     if ($stdin_json) {
         $data = $stdin_json | ConvertFrom-Json -ErrorAction SilentlyContinue
         if ($data) {

@@ -1,4 +1,4 @@
-# tests/smoke.ps1 — Synthetic stdin → notify-busy + notify-done → assert
+# tests/smoke.ps1 -- Synthetic stdin -> notify-busy + notify-done -> assert
 # tab_status_*.json appears with the expected fields.
 #
 # Uses an isolated cache dir under $env:TEMP so we don't pollute the user's
@@ -41,30 +41,19 @@ try {
         $script = Join-Path $srcDir $ScriptName
         if (-not (Test-Path $script)) { throw "Missing: $script" }
 
-        $argsList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $script) + $ExtraArgs
-        $tmpIn  = New-TemporaryFile
-        $tmpOut = New-TemporaryFile
-        $tmpErr = New-TemporaryFile
+        $oldProfile = $env:USERPROFILE
+        $env:USERPROFILE = $tmpHome
         try {
-            Set-Content -LiteralPath $tmpIn.FullName -Value $Stdin -Encoding utf8 -NoNewline
-            $oldProfile = $env:USERPROFILE
-            try {
-                $env:USERPROFILE = $tmpHome
-                $p = Start-Process -FilePath 'powershell.exe' -ArgumentList $argsList `
-                    -RedirectStandardInput $tmpIn.FullName `
-                    -RedirectStandardOutput $tmpOut.FullName `
-                    -RedirectStandardError $tmpErr.FullName `
-                    -WindowStyle Hidden -PassThru -Wait
-                return @{
-                    ExitCode = $p.ExitCode
-                    Stdout   = (Get-Content $tmpOut.FullName -Raw -ErrorAction SilentlyContinue)
-                    Stderr   = (Get-Content $tmpErr.FullName -Raw -ErrorAction SilentlyContinue)
-                }
-            } finally {
-                $env:USERPROFILE = $oldProfile
+            # Native pipe stdin to child powershell. Splatting @argList preserves
+            # quoting around spaces (Start-Process -ArgumentList does not).
+            $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $script) + $ExtraArgs
+            $output  = $Stdin | & powershell.exe @argList 2>&1 | Out-String
+            return @{
+                ExitCode = $LASTEXITCODE
+                Output   = $output
             }
         } finally {
-            Remove-Item $tmpIn.FullName, $tmpOut.FullName, $tmpErr.FullName -Force -ErrorAction SilentlyContinue
+            $env:USERPROFILE = $oldProfile
         }
     }
 
@@ -73,7 +62,7 @@ try {
     $r = Invoke-Hook -ScriptName 'notify-busy.ps1' -Stdin $payload
     if ($r.ExitCode -ne 0) {
         Write-Host "    [FAIL] exit $($r.ExitCode)" -ForegroundColor Red
-        Write-Host "    stderr: $($r.Stderr)" -ForegroundColor Red
+        Write-Host "    output: $($r.Output)" -ForegroundColor Red
         $failed++
     } else {
         $statusFiles = Get-ChildItem -Path $tmpCache -Filter "tab_status_*.json" -ErrorAction SilentlyContinue
@@ -99,7 +88,7 @@ try {
     $r = Invoke-Hook -ScriptName 'notify-done.ps1' -ExtraArgs @('-Title', 'Smoke', '-Message', 'Task complete') -Stdin $payload
     if ($r.ExitCode -ne 0) {
         Write-Host "    [FAIL] exit $($r.ExitCode)" -ForegroundColor Red
-        Write-Host "    stderr: $($r.Stderr)" -ForegroundColor Red
+        Write-Host "    output: $($r.Output)" -ForegroundColor Red
         $failed++
     } else {
         $statusFiles = Get-ChildItem -Path $tmpCache -Filter "tab_status_*.json" -ErrorAction SilentlyContinue
@@ -110,6 +99,7 @@ try {
             $j = Get-Content $statusFiles[0].FullName -Raw -Encoding utf8 | ConvertFrom-Json
             if ($j.state -ne 'DONE') {
                 Write-Host "    [FAIL] state=$($j.state), expected DONE" -ForegroundColor Red
+                Write-Host "           full status: $(Get-Content $statusFiles[0].FullName -Raw)" -ForegroundColor DarkGray
                 $failed++
             } else {
                 Write-Host "    [OK]   state=DONE" -ForegroundColor Green

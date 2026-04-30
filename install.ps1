@@ -3,7 +3,7 @@
 # Copies the 5 hook scripts to ~/.claude/hooks/ and merges the four hook
 # entries (Stop, Notification, SessionStart, UserPromptSubmit, PreToolUse)
 # into ~/.claude/settings.json without overwriting the user's other entries.
-# Idempotent — re-running is safe.
+# Idempotent -- re-running is safe.
 #
 # Usage:
 #   ./install.ps1                # copy + register
@@ -31,7 +31,7 @@ $HooksDest  = Join-Path $env:USERPROFILE '.claude\hooks'
 $Settings   = Join-Path $env:USERPROFILE '.claude\settings.json'
 $StartupLnk = Join-Path ([Environment]::GetFolderPath('Startup')) 'agent-tabs-watcher.lnk'
 
-# Each entry: hook event name → ([script filename], [-Title arg], [-Message arg]).
+# Each entry: hook event name -> ([script filename], [-Title arg], [-Message arg]).
 # -Title / -Message only used for notify-done variants.
 $HookSpec = @(
     @{ Event='Stop';             Script='notify-done.ps1';   Args=@("-Title 'Claude Code'", "-Message 'Task complete'") }

@@ -4,7 +4,7 @@ param()
 # to BUSY when CC fires the first tool call after the user resolves a
 # Notification (e.g. permission prompt). Permission grants do not fire
 # UserPromptSubmit, so without this the panel is stuck at [WAIT] until the
-# next Stop event makes it [DONE] — user can't tell whether CC is still
+# next Stop event makes it [DONE] -- user can't tell whether CC is still
 # waiting or back to work.
 #
 # Designed for hot path: PreToolUse can fire 50-100x per task. Early-exit
@@ -20,6 +20,9 @@ $ErrorActionPreference = "SilentlyContinue"
 $session_id = ""
 try {
     $stdin_json = [Console]::In.ReadToEnd()
+    if ($stdin_json -and $stdin_json[0] -eq [char]0xFEFF) {
+        $stdin_json = $stdin_json.Substring(1)
+    }
     if ($stdin_json) {
         $data = $stdin_json | ConvertFrom-Json -ErrorAction SilentlyContinue
         if ($data -and $data.session_id) { $session_id = $data.session_id }

@@ -1,4 +1,4 @@
-# cc-tabs-watcher.ps1 — Always-on-top status panel for Claude Code tabs.
+# cc-tabs-watcher.ps1 -- Always-on-top status panel for Claude Code tabs.
 #
 # Reads ~/.claude/cache/tab_status_*.json (written by notify-done.ps1)
 # and shows a compact list of which tabs need attention (DONE / WAITING).
@@ -37,14 +37,14 @@ if (-not (Test-Path $cacheDir)) {
 # Time-based stale filter is disabled. Per-tab dedup (terminal_pid Group-Object
 # newest-wins) plus liveness check (drop entries whose owning shell pid died)
 # already prevent the panel from accumulating noise. Showing all live tabs
-# regardless of age is what the user requested 2026-04-30 — long-running
+# regardless of age is what the user requested 2026-04-30 -- long-running
 # tabs that haven't logged activity recently still belong on the panel.
 # Set to a large value to act as a safety bound only (24h = 86400s).
 $STALE_SECONDS = 86400
 
-# ──────────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------
 # Form
-# ──────────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "Agent Tabs"
 $form.Size = New-Object System.Drawing.Size(420, 260)
@@ -77,9 +77,9 @@ $lblCount.Text = "0 tabs"
 [void]$status.Items.Add($lblCount)
 $form.Controls.Add($status)
 
-# ──────────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------
 # Refresh
-# ──────────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------
 function Refresh-Tabs {
     $now = Get-Date
     $entries = @()
@@ -122,7 +122,7 @@ function Refresh-Tabs {
     # Per-tab dedup: keep newest entry per tab, delete superseded files.
     # A tab is identified by terminal_pid (shell pid, stable for tab lifetime).
     # When CC restarts inside the same tab the new session writes a fresh
-    # status file with a new session_id but the same terminal_pid — older
+    # status file with a new session_id but the same terminal_pid -- older
     # ones are orphans and can go. Fallback keys for legacy/missing fields
     # below preserve correctness for entries written before this schema.
     $deduped = @()
@@ -145,7 +145,7 @@ function Refresh-Tabs {
     $lv.BeginUpdate()
     $lv.Items.Clear()
     foreach ($e in ($deduped | Sort-Object Ts -Descending)) {
-        # ASCII labels — non-ASCII renders as mojibake when the .ps1 source
+        # ASCII labels -- non-ASCII renders as mojibake when the .ps1 source
         # is interpreted as GBK on Windows (PowerShell 5.1 default code page).
         $stateLabel = switch ($e.State) {
             "DONE"    { "[DONE]" }
@@ -184,7 +184,7 @@ function Refresh-Tabs {
     $lblCount.Text = "$($lv.Items.Count) tabs"
 }
 
-# Double-click → bring terminal to front
+# Double-click -> bring terminal to front
 $lv.Add_DoubleClick({
     if ($lv.SelectedItems.Count -eq 0) { return }
     $hwnd = [System.IntPtr][int64]$lv.SelectedItems[0].Tag
@@ -206,11 +206,11 @@ Refresh-Tabs
 [System.Windows.Forms.Application]::Run($form)
 
 <#
-README — Auto-start at login
+README -- Auto-start at login
 
 Option 1 (recommended): Startup folder shortcut
 
-    Win+R  →  shell:startup  →  paste a .lnk with:
+    Win+R  ->  shell:startup  ->  paste a .lnk with:
       Target:  powershell.exe
       Args:    -NoProfile -WindowStyle Hidden -File "%USERPROFILE%\.claude\hooks\cc-tabs-watcher.ps1"
 

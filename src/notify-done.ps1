@@ -31,7 +31,7 @@ if (-not ("CCNotify.W32" -as [type])) {
 # Walk parent process chain to find owning terminal window. Returns both the
 # GUI hwnd (shared across all tabs in modern hosts like WT/Tabby) AND the
 # pid of the last non-GUI ancestor (= per-tab shell process). Watcher uses
-# terminal_pid for liveness — when the tab closes that pid dies and the
+# terminal_pid for liveness -- when the tab closes that pid dies and the
 # entry can be dropped.
 #
 # Important: walk starts at the PARENT (not $PID). The current process is
@@ -59,7 +59,7 @@ function Get-TerminalInfo {
 }
 
 # Force UTF-8 stdin (PowerShell 5.1 defaults to console code page; Claude
-# writes UTF-8 hook payload — Chinese / Unicode prompts otherwise corrupt
+# writes UTF-8 hook payload -- Chinese / Unicode prompts otherwise corrupt
 # the JSON and ConvertFrom-Json fails).
 [Console]::InputEncoding = [System.Text.UTF8Encoding]::new($false)
 
@@ -67,6 +67,12 @@ $session_id = ""
 $cwd = (Get-Location).Path
 try {
     $stdin_json = [Console]::In.ReadToEnd()
+    # Strip leading BOM if a parent piped UTF-8-with-BOM to us. PS5.1
+    # ConvertFrom-Json chokes on it (silent null in catch); session_id
+    # then falls back to $PID and the watcher kills our entry.
+    if ($stdin_json -and $stdin_json[0] -eq [char]0xFEFF) {
+        $stdin_json = $stdin_json.Substring(1)
+    }
     if ($stdin_json) {
         $data = $stdin_json | ConvertFrom-Json -ErrorAction SilentlyContinue
         if ($data) {
@@ -96,7 +102,7 @@ $info = Get-TerminalInfo
 $hwnd = $info.Hwnd
 $terminalPid = $info.TerminalPid
 
-# (A) Taskbar flash — until window comes to foreground.
+# (A) Taskbar flash -- until window comes to foreground.
 # Skip when the host window is already foreground: WT/Tabby share one
 # hwnd across all tabs, so flashing on the active host is a no-op.
 if ($hwnd -ne [System.IntPtr]::Zero) {
@@ -124,7 +130,7 @@ if ($hwnd -ne [System.IntPtr]::Zero) {
 }
 if (-not $titleHint) { $titleHint = Split-Path -Leaf $cwd }
 
-# (D) Status file — consumed by cc-tabs-watcher.ps1
+# (D) Status file -- consumed by cc-tabs-watcher.ps1
 $cacheDir = Join-Path $env:USERPROFILE ".claude\cache"
 if (-not (Test-Path $cacheDir)) {
     New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null

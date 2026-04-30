@@ -50,6 +50,9 @@ function Get-TerminalHwnd {
 $session_id = ""
 try {
     $stdin_json = [Console]::In.ReadToEnd()
+    if ($stdin_json -and $stdin_json[0] -eq [char]0xFEFF) {
+        $stdin_json = $stdin_json.Substring(1)
+    }
     if ($stdin_json) {
         $data = $stdin_json | ConvertFrom-Json -ErrorAction SilentlyContinue
         if ($data -and $data.session_id) { $session_id = $data.session_id }

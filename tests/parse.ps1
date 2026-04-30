@@ -1,4 +1,4 @@
-# tests/parse.ps1 — Parse-check every .ps1 in src/ and the installer.
+# tests/parse.ps1 -- Parse-check every .ps1 in src/ and the installer.
 #
 # Catches syntax errors before they ship. Runs in seconds. Used by CI and
 # recommended pre-commit.
@@ -23,7 +23,7 @@ foreach ($t in $targets) {
     if ($errors -and $errors.Count -gt 0) {
         Write-Host "  [FAIL] $t" -ForegroundColor Red
         foreach ($e in $errors) {
-            Write-Host "         $($e.Extent.StartLineNumber):$($e.Extent.StartColumnNumber) — $($e.Message)" -ForegroundColor Red
+            Write-Host "         $($e.Extent.StartLineNumber):$($e.Extent.StartColumnNumber) -- $($e.Message)" -ForegroundColor Red
         }
         $failed++
     } else {

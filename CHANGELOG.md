@@ -4,7 +4,14 @@ All notable changes to this project will be documented in this file. Format foll
 
 ## [Unreleased]
 
-## [0.1.0] — 2026-04-30
+## [0.1.1] -- 2026-05-01
+
+### Fixed
+- ASCII-only `.ps1` source — non-ASCII characters (em-dash, arrow, box-drawing) in scripts caused `windows-latest` GitHub Actions runner (English-locale PowerShell 5.1) to fail parsing with `TerminatorExpectedAtEndOfString` errors. Local Chinese-locale machines decoded the UTF-8 source correctly and didn't surface the bug. Replaced all non-ASCII with ASCII equivalents.
+- BOM-prefixed stdin handling — when a parent process pipes UTF-8-with-BOM into a hook script (PowerShell native pipe between two PS5.1 processes does this), the leading `U+FEFF` made `ConvertFrom-Json` silently return null. `session_id` then fell back to `$PID` and the watcher's liveness check immediately deleted the entry. All hooks now strip the BOM before parsing.
+- `tests/smoke.ps1` — reworked to use PowerShell native pipe + array splatting instead of `Start-Process -RedirectStandardInput / -ArgumentList`. The `Start-Process` approach failed in two ways on PS5.1: stdin redirection didn't reliably reach the child, and `-ArgumentList` did not preserve quoting around args containing spaces (`-Message 'Task complete'` was sent as `-Message Task` + positional `complete`).
+
+## [0.1.0] -- 2026-04-30
 
 Initial public release. Extracted from a private multi-Agent project where the panel had been dogfooded for several weeks.
 
@@ -26,5 +33,6 @@ Initial public release. Extracted from a private multi-Agent project where the p
 - Multi-tab terminal hosts (Windows Terminal / Tabby) share one `MainWindowHandle` across all tabs — the panel can bring the host window to front on double-click but cannot focus a specific tab inside it.
 - Tested with Claude Code only. Other AI CLIs likely use different stdin payload schemas (`sessionId` camelCase vs `session_id` snake_case, etc.) — see `docs/architecture.md` for details.
 
-[Unreleased]: https://github.com/napheir/claude-code-tabs/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/napheir/claude-code-tabs/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/napheir/claude-code-tabs/releases/tag/v0.1.1
 [0.1.0]: https://github.com/napheir/claude-code-tabs/releases/tag/v0.1.0
