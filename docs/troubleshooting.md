@@ -84,14 +84,6 @@ If toasts work but the title shows mojibake (`???` or `锟斤拷`), your console
 - To verify the flash code path runs at all: alt-tab to a different application *before* the agent finishes. Then a flash should fire on completion.
 - If still no flash with a definitely-different foreground window, check that `Get-TerminalInfo` returns a non-zero hwnd. The status JSON's `hwnd` field should be a positive integer. `0` means the parent walk didn't find a GUI host (rare; happens with some non-standard terminals).
 
-## `install.ps1` says "powershell-with-AsHashtable not available"
-
-PowerShell 5.1's `ConvertFrom-Json` does not support `-AsHashtable` (PS 7+ feature). The installer assumes 5.1 in places that should work, but if you see a `Cannot bind parameter 'AsHashtable'` error, you're on a version that's older than the documented minimum.
-
-Workaround: install PowerShell 7 from `winget install Microsoft.PowerShell` and run `pwsh ./install.ps1`.
-
-This is a known rough edge — see issue tracker.
-
 ## I uninstalled but the panel is still up
 
 The watcher process is still running. `./install.ps1 -Uninstall` *tries* to kill it but the Stop-Process call is best-effort.

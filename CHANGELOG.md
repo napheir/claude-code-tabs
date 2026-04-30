@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file. Format foll
 
 ## [Unreleased]
 
+## [0.1.2] -- 2026-05-01
+
+### Fixed
+- `install.ps1` no longer requires PowerShell 7. v0.1.1 used `ConvertFrom-Json -AsHashtable` (PS7+ only) in `Load-Settings`, so users on the documented minimum target (PS5.1) hit `A parameter cannot be found that matches parameter name 'AsHashtable'` and Register-Hooks aborted before settings.json was modified. Replaced with a `ConvertTo-HashtableRecursive` helper that walks the PSCustomObject tree returned by PS5.1's `ConvertFrom-Json`.
+- `install.ps1` no longer mutates `~/.claude/settings.json` when re-run with everything already registered. Previously Save-Settings was called unconditionally; combined with PS5.1's single-element-array unwrap on `ConvertFrom-Json`, this silently degraded `"Stop": [{...}]` to `"Stop": {...}` (object form) on every idempotent re-run. Now tracks a `$changed` flag and only writes when at least one new entry was added. Also normalizes all event arrays + inner `hooks` arrays before save as a defense against the partial-register case.
+
 ## [0.1.1] -- 2026-05-01
 
 ### Fixed
@@ -33,6 +39,7 @@ Initial public release. Extracted from a private multi-Agent project where the p
 - Multi-tab terminal hosts (Windows Terminal / Tabby) share one `MainWindowHandle` across all tabs — the panel can bring the host window to front on double-click but cannot focus a specific tab inside it.
 - Tested with Claude Code only. Other AI CLIs likely use different stdin payload schemas (`sessionId` camelCase vs `session_id` snake_case, etc.) — see `docs/architecture.md` for details.
 
-[Unreleased]: https://github.com/napheir/claude-code-tabs/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/napheir/claude-code-tabs/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/napheir/claude-code-tabs/releases/tag/v0.1.2
 [0.1.1]: https://github.com/napheir/claude-code-tabs/releases/tag/v0.1.1
 [0.1.0]: https://github.com/napheir/claude-code-tabs/releases/tag/v0.1.0

@@ -94,11 +94,32 @@ function Remove-Scripts() {
     }
 }
 
+function ConvertTo-HashtableRecursive($obj) {
+    # PS5.1's ConvertFrom-Json returns PSCustomObject (no -AsHashtable until
+    # PS7). The rest of this script wants hashtables for ContainsKey + index
+    # assignment, so convert recursively at the boundary.
+    if ($null -eq $obj) { return $null }
+    if ($obj -is [System.Collections.IDictionary]) {
+        $h = @{}
+        foreach ($k in $obj.Keys) { $h[$k] = ConvertTo-HashtableRecursive $obj[$k] }
+        return $h
+    }
+    if ($obj -is [System.Collections.IList] -or $obj -is [array]) {
+        return @($obj | ForEach-Object { ConvertTo-HashtableRecursive $_ })
+    }
+    if ($obj -is [PSCustomObject]) {
+        $h = @{}
+        foreach ($p in $obj.PSObject.Properties) { $h[$p.Name] = ConvertTo-HashtableRecursive $p.Value }
+        return $h
+    }
+    return $obj
+}
+
 function Load-Settings() {
     if (-not (Test-Path $Settings)) { return @{ } }
     $raw = Get-Content -LiteralPath $Settings -Raw -Encoding utf8
     if (-not $raw.Trim()) { return @{ } }
-    return $raw | ConvertFrom-Json -AsHashtable
+    return ConvertTo-HashtableRecursive ($raw | ConvertFrom-Json)
 }
 
 function Save-Settings($obj) {
@@ -134,6 +155,7 @@ function Register-Hooks() {
     if (-not $settings.ContainsKey('hooks')) { $settings['hooks'] = @{ } }
     $hooksRoot = $settings['hooks']
 
+    $changed = $false
     foreach ($spec in $HookSpec) {
         $event  = $spec.Event
         $script = $spec.Script
@@ -160,6 +182,27 @@ function Register-Hooks() {
         $eventArray += $newEntry
         $hooksRoot[$event] = $eventArray
         Write-Ok "$event/$script registered"
+        $changed = $true
+    }
+
+    if (-not $changed) {
+        Write-Skip 'no settings.json changes'
+        return
+    }
+
+    # PS5.1 ConvertFrom-Json unwraps single-element arrays. When we did need
+    # to add an entry to one event but other events were untouched, those
+    # untouched events would serialize as scalar objects (degraded form).
+    # Normalize all event values + nested hooks arrays before save so we
+    # never write a degraded settings.json.
+    foreach ($k in @($hooksRoot.Keys)) {
+        $arr = @($hooksRoot[$k])
+        foreach ($entry in $arr) {
+            if ($entry -is [System.Collections.IDictionary] -and $entry.Contains('hooks')) {
+                $entry['hooks'] = @($entry['hooks'])
+            }
+        }
+        $hooksRoot[$k] = $arr
     }
 
     $settings['hooks'] = $hooksRoot
