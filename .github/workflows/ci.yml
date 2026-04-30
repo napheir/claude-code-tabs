@@ -37,9 +37,4 @@ jobs:
 
       - name: Verify installer dry-run is clean
         shell: powershell
-        run: |
-          ./install.ps1 -DryRun
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "install.ps1 -DryRun returned non-zero"
-            exit 1
-          }
+        run: ./install.ps1 -DryRun

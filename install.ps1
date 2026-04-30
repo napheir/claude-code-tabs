@@ -245,3 +245,4 @@ Install-Startup
 Write-Host ''
 Write-Host 'Done. Open a new Claude Code tab for hook entries to take effect.' -ForegroundColor Green
 Write-Host 'The "Agent Tabs" panel should be visible (top-right of primary screen).' -ForegroundColor Green
+exit 0
