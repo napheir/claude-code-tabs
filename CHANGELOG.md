@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file. Format foll
 
 ## [Unreleased]
 
+## [0.1.3] -- 2026-05-01
+
+### Fixed
+- `install.ps1` no longer crashes when actually writing `~/.claude/settings.json`. The script-scope path variable `$Settings` collided with the local `$settings` hashtable inside `Register-Hooks` / `Unregister-Hooks` (PowerShell variables are case-insensitive within a scope, and dynamic scoping walks the caller's locals). When `Save-Settings` was invoked from `Register-Hooks`, its `$Settings` lookup resolved to the caller's hashtable instead of the script-scope path string, causing `Set-Content -LiteralPath` to receive a `Hashtable` and abort. The bug was latent in v0.1.2 because the steady-state idempotent path skips `Save-Settings` entirely (`if (-not $changed) { return }`), and CI never exercised the write path. Renamed the script-scope variable to `$SettingsPath`.
+
+### Added
+- `tests/smoke-install.ps1` and a new `install-smoke` CI job exercise `Register-Hooks` / `Save-Settings` against a temp `settings.json`. Asserts the file is actually written, our entries appear, a preexisting unrelated entry survives, the second register is a no-op, and uninstall removes only our entries. The previous CI surface (parse + hook-script smoke + `install.ps1 -DryRun`) never wrote `settings.json`, which is why the case-collision bug shipped green.
+- `install.ps1` now wraps its top-level Run block in a dot-source guard (`$MyInvocation.InvocationName -ne '.'`), so tests can pull in `Register-Hooks` etc. without triggering a real install. Running the script normally is unchanged.
+
+### Docs
+- `CLAUDE.md` section 8 made the release flow mandatory after any user-facing fix; pushing the fix to `master` is no longer considered "done."
+
 ## [0.1.2] -- 2026-05-01
 
 ### Fixed
@@ -39,7 +51,8 @@ Initial public release. Extracted from a private multi-Agent project where the p
 - Multi-tab terminal hosts (Windows Terminal / Tabby) share one `MainWindowHandle` across all tabs — the panel can bring the host window to front on double-click but cannot focus a specific tab inside it.
 - Tested with Claude Code only. Other AI CLIs likely use different stdin payload schemas (`sessionId` camelCase vs `session_id` snake_case, etc.) — see `docs/architecture.md` for details.
 
-[Unreleased]: https://github.com/napheir/claude-code-tabs/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/napheir/claude-code-tabs/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/napheir/claude-code-tabs/releases/tag/v0.1.3
 [0.1.2]: https://github.com/napheir/claude-code-tabs/releases/tag/v0.1.2
 [0.1.1]: https://github.com/napheir/claude-code-tabs/releases/tag/v0.1.1
 [0.1.0]: https://github.com/napheir/claude-code-tabs/releases/tag/v0.1.0
