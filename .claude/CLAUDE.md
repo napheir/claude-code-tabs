@@ -80,8 +80,25 @@ No `(scope)` suffix on the type. One concern per commit.
 
 ## 8. Release flow
 
+**This flow is MANDATORY after any commit that changes installed behavior.**
+Pushing the fix to `master` is not "done." A user-facing fix that lands on
+`master` without a tag bump leaves users on `gh release` / a `git checkout
+vX.Y.Z` clone running the broken version. If a session ships such a fix, it
+must complete the full flow below before stopping. Test-only, CI-only, and
+pure-docs commits do not trigger a release on their own, but if they
+accumulate alongside a user-facing fix, they ride the same release.
+
+What counts as user-facing: anything that changes what `install.ps1` does at
+runtime, what the hook scripts do at runtime, the watcher's behavior, or
+compatibility with documented requirements (PS5.1 / Windows). What does not:
+CI workflow edits, new tests, README / CHANGELOG / CLAUDE.md edits, internal
+refactors with no behavior change.
+
+Steps:
+
 1. Update `CHANGELOG.md` (Keep-a-Changelog style; bump `[Unreleased]` to a dated section).
-2. Tag: `git tag vX.Y.Z && git push --tags`.
+2. Tag: `git tag -a vX.Y.Z -m "<release notes>" && git push --tags`. Use an
+   annotated tag so step 3's `--notes-from-tag` has content.
 3. `gh release create vX.Y.Z --notes-from-tag` (or `--notes-file`).
 4. **Do not delete published tags.** When fixing a bug in a shipped release,
    leave the old tag and add a deprecation banner in its release notes
