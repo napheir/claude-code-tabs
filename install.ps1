@@ -275,21 +275,26 @@ function Remove-Startup() {
 }
 
 # ----- Run -----
+#
+# Guard so tests can dot-source this file to expose Register-Hooks /
+# Save-Settings / etc. without triggering a real install. When dot-sourced,
+# $MyInvocation.InvocationName is '.'; otherwise it's '&' or the script path.
+if ($MyInvocation.InvocationName -ne '.') {
+    if ($Uninstall) {
+        Unregister-Hooks
+        Remove-Scripts
+        Remove-Startup
+        Write-Host ''
+        Write-Host 'Uninstalled.' -ForegroundColor Green
+        exit 0
+    }
 
-if ($Uninstall) {
-    Unregister-Hooks
-    Remove-Scripts
-    Remove-Startup
+    Copy-Scripts
+    Register-Hooks
+    Install-Startup
+
     Write-Host ''
-    Write-Host 'Uninstalled.' -ForegroundColor Green
+    Write-Host 'Done. Open a new Claude Code tab for hook entries to take effect.' -ForegroundColor Green
+    Write-Host 'The "Agent Tabs" panel should be visible (top-right of primary screen).' -ForegroundColor Green
     exit 0
 }
-
-Copy-Scripts
-Register-Hooks
-Install-Startup
-
-Write-Host ''
-Write-Host 'Done. Open a new Claude Code tab for hook entries to take effect.' -ForegroundColor Green
-Write-Host 'The "Agent Tabs" panel should be visible (top-right of primary screen).' -ForegroundColor Green
-exit 0

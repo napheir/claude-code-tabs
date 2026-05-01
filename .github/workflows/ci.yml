@@ -38,3 +38,14 @@ jobs:
       - name: Verify installer dry-run is clean
         shell: powershell
         run: ./install.ps1 -DryRun
+
+  install-smoke:
+    name: Install smoke (Register-Hooks against temp settings.json)
+    runs-on: windows-latest
+    needs: parse
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run install smoke test
+        shell: powershell
+        run: ./tests/smoke-install.ps1
