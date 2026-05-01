@@ -25,11 +25,15 @@ param(
 $ErrorActionPreference = 'Stop'
 
 # ----- Paths -----
-$RepoRoot   = Split-Path -Parent $MyInvocation.MyCommand.Path
-$SrcDir     = Join-Path $RepoRoot 'src'
-$HooksDest  = Join-Path $env:USERPROFILE '.claude\hooks'
-$Settings   = Join-Path $env:USERPROFILE '.claude\settings.json'
-$StartupLnk = Join-Path ([Environment]::GetFolderPath('Startup')) 'agent-tabs-watcher.lnk'
+$RepoRoot     = Split-Path -Parent $MyInvocation.MyCommand.Path
+$SrcDir       = Join-Path $RepoRoot 'src'
+$HooksDest    = Join-Path $env:USERPROFILE '.claude\hooks'
+# NB: name is $SettingsPath (not $Settings) to avoid a PS case-insensitive
+# collision with the local $settings hashtable inside Register-Hooks /
+# Unregister-Hooks. PS uses dynamic scoping, so Save-Settings would otherwise
+# read the caller's hashtable instead of this script-scope path.
+$SettingsPath = Join-Path $env:USERPROFILE '.claude\settings.json'
+$StartupLnk   = Join-Path ([Environment]::GetFolderPath('Startup')) 'agent-tabs-watcher.lnk'
 
 # Each entry: hook event name -> ([script filename], [-Title arg], [-Message arg]).
 # -Title / -Message only used for notify-done variants.
@@ -116,8 +120,8 @@ function ConvertTo-HashtableRecursive($obj) {
 }
 
 function Load-Settings() {
-    if (-not (Test-Path $Settings)) { return @{ } }
-    $raw = Get-Content -LiteralPath $Settings -Raw -Encoding utf8
+    if (-not (Test-Path $SettingsPath)) { return @{ } }
+    $raw = Get-Content -LiteralPath $SettingsPath -Raw -Encoding utf8
     if (-not $raw.Trim()) { return @{ } }
     return ConvertTo-HashtableRecursive ($raw | ConvertFrom-Json)
 }
@@ -128,12 +132,12 @@ function Save-Settings($obj) {
         ($obj | ConvertTo-Json -Depth 32) -split "`n" | Select-Object -First 30 | ForEach-Object { Write-Host "    $_" }
         return
     }
-    $parent = Split-Path -Parent $Settings
+    $parent = Split-Path -Parent $SettingsPath
     if (-not (Test-Path $parent)) { New-Item -ItemType Directory -Path $parent -Force | Out-Null }
-    if (Test-Path $Settings) { Copy-Item -Path $Settings -Destination ($Settings + '.bak') -Force }
+    if (Test-Path $SettingsPath) { Copy-Item -Path $SettingsPath -Destination ($SettingsPath + '.bak') -Force }
     $json = $obj | ConvertTo-Json -Depth 32
-    Set-Content -LiteralPath $Settings -Value $json -Encoding utf8
-    Write-Ok "settings.json updated (backup at $Settings.bak)"
+    Set-Content -LiteralPath $SettingsPath -Value $json -Encoding utf8
+    Write-Ok "settings.json updated (backup at $SettingsPath.bak)"
 }
 
 function Hook-Entry-Exists($eventArray, $scriptName) {
@@ -211,7 +215,7 @@ function Register-Hooks() {
 
 function Unregister-Hooks() {
     Write-Step 'Removing our hook entries from settings.json'
-    if (-not (Test-Path $Settings)) { Write-Skip 'no settings.json'; return }
+    if (-not (Test-Path $SettingsPath)) { Write-Skip 'no settings.json'; return }
     $settings = Load-Settings
     if (-not $settings['hooks']) { Write-Skip 'no hooks in settings.json'; return }
 
