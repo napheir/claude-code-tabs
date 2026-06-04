@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file. Format foll
 
 ## [Unreleased]
 
+## [0.1.4] -- 2026-06-04
+
+### Fixed
+- `notify-clear.ps1` no longer wipes a tab's status file when `SessionStart` fires with source `compact` or `resume`. `SessionStart` does not fire only on a fresh start: Claude Code also fires it on context compaction (auto or manual) and on resume. In those cases the *same* session keeps working and does not emit a new `UserPromptSubmit`, so `notify-busy` never re-fires to rebuild the file. The result was that a long-running tab silently vanished from the panel the instant it auto-compacted and stayed invisible -- while actively working -- until its next `Stop`. Reproduced live: a ~1M-token session auto-compacted and its panel entry disappeared ~30 minutes before the next Stop. `notify-clear` now reads the `source` field from the hook payload and clears the entry only on a genuine fresh start (`startup` / `clear`, or an unknown/empty source to preserve legacy behavior).
+
+### Added
+- `tests/smoke.ps1` now covers notify-clear source gating: a `source=compact` event must KEEP the status file (regression guard for the disappearing-tab bug), and a `source=startup` event must clear it.
+
 ## [0.1.3] -- 2026-05-01
 
 ### Fixed
@@ -51,7 +59,8 @@ Initial public release. Extracted from a private multi-Agent project where the p
 - Multi-tab terminal hosts (Windows Terminal / Tabby) share one `MainWindowHandle` across all tabs — the panel can bring the host window to front on double-click but cannot focus a specific tab inside it.
 - Tested with Claude Code only. Other AI CLIs likely use different stdin payload schemas (`sessionId` camelCase vs `session_id` snake_case, etc.) — see `docs/architecture.md` for details.
 
-[Unreleased]: https://github.com/napheir/claude-code-tabs/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/napheir/claude-code-tabs/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/napheir/claude-code-tabs/releases/tag/v0.1.4
 [0.1.3]: https://github.com/napheir/claude-code-tabs/releases/tag/v0.1.3
 [0.1.2]: https://github.com/napheir/claude-code-tabs/releases/tag/v0.1.2
 [0.1.1]: https://github.com/napheir/claude-code-tabs/releases/tag/v0.1.1
