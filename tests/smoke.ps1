@@ -107,6 +107,44 @@ try {
         }
     }
 
+    # ---- Test 3: notify-clear on source=compact KEEPS the status file ----
+    # Regression guard: SessionStart fires on context compaction with the same
+    # session still working; clearing then would make an active tab vanish.
+    Write-Host "  [3/4] notify-clear.ps1 (source=compact keeps file)" -ForegroundColor Cyan
+    $compactPayload = @{ session_id = $sessionId; source = 'compact' } | ConvertTo-Json -Compress
+    $r = Invoke-Hook -ScriptName 'notify-clear.ps1' -Stdin $compactPayload
+    if ($r.ExitCode -ne 0) {
+        Write-Host "    [FAIL] exit $($r.ExitCode)" -ForegroundColor Red
+        Write-Host "    output: $($r.Output)" -ForegroundColor Red
+        $failed++
+    } else {
+        $statusFiles = Get-ChildItem -Path $tmpCache -Filter "tab_status_*.json" -ErrorAction SilentlyContinue
+        if (-not $statusFiles -or $statusFiles.Count -eq 0) {
+            Write-Host "    [FAIL] status file was deleted on source=compact (regression)" -ForegroundColor Red
+            $failed++
+        } else {
+            Write-Host "    [OK]   status file survived compaction" -ForegroundColor Green
+        }
+    }
+
+    # ---- Test 4: notify-clear on source=startup DELETES the status file ----
+    Write-Host "  [4/4] notify-clear.ps1 (source=startup clears file)" -ForegroundColor Cyan
+    $startupPayload = @{ session_id = $sessionId; source = 'startup' } | ConvertTo-Json -Compress
+    $r = Invoke-Hook -ScriptName 'notify-clear.ps1' -Stdin $startupPayload
+    if ($r.ExitCode -ne 0) {
+        Write-Host "    [FAIL] exit $($r.ExitCode)" -ForegroundColor Red
+        Write-Host "    output: $($r.Output)" -ForegroundColor Red
+        $failed++
+    } else {
+        $statusFiles = Get-ChildItem -Path $tmpCache -Filter "tab_status_*.json" -ErrorAction SilentlyContinue
+        if ($statusFiles -and $statusFiles.Count -gt 0) {
+            Write-Host "    [FAIL] status file not cleared on source=startup" -ForegroundColor Red
+            $failed++
+        } else {
+            Write-Host "    [OK]   status file cleared on fresh start" -ForegroundColor Green
+        }
+    }
+
     Write-Host ""
     if ($failed -gt 0) {
         Write-Host "$failed assertion(s) failed." -ForegroundColor Red
